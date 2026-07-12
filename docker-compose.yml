@@ -1,0 +1,20 @@
+services:
+  api:
+    build: ./backend
+    ports: ["8000:8000"]
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/skills:/app/skills
+    env_file: .env
+
+  frontend:
+    build: ./frontend
+    ports: ["3000:3000"]
+    environment:
+      - NEXT_PUBLIC_API_URL=http://localhost:8000
+
+  chroma:
+    image: chromadb/chroma:latest
+    ports: ["8001:8000"]
+    volumes:
+      - ./backend/data/chroma:/chroma/chroma
