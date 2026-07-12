@@ -1,9 +1,9 @@
+import uuid
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from app.agent.mcp_manager import mcp_manager
 
 router = APIRouter(prefix="/connectors", tags=["connectors"])
-
 
 class AddServerRequest(BaseModel):
     name: str
@@ -13,6 +13,14 @@ class AddServerRequest(BaseModel):
     transport: str = "stdio"  # "stdio" | "http" | "sse"
     url: str | None = None
 
+class CustomServerIn(BaseModel):
+    name: str = Field(..., min_length=1, max_length=64)
+    transport: str = Field(..., pattern="^(stdio|http|streamable_http)$")
+    command: str | None = None
+    args: list[str] | None = None
+    url: str | None = None
+    token: str | None = None
+    env: dict[str, str] | None = None
 
 # ── List all configured MCP servers ──────────────────────────────
 
@@ -30,19 +38,34 @@ async def add_connector(req: AddServerRequest):
     config = req.model_dump(exclude={"name"})
     return mcp_manager.add_server(req.name, config)
 
+@router.post("/custom")
+async def add_custom_server(payload: CustomServerIn):
+    """Register a new custom MCP server config."""
+    config = payload.model_dump(exclude={"name"})
+    # Convert transport streamable_http to sse if needed, or just pass it
+    mcp_manager.add_server(payload.name, config)
+    return {
+        "id": f"custom-{uuid.uuid4()}",
+        "name": payload.name,
+        "status": "disconnected",
+        "transport": payload.transport,
+        "isCustom": True,
+    }
+
 
 # ── Connect to a server ─────────────────────────────────────────
 
 @router.post("/{connector_id}/connect")
 async def connect_connector(connector_id: str):
     """Start the MCP server process and establish a live connection."""
+    if connector_id == "figma":
+        return {"status": "pending", "url": "https://example.com/oauth"}
     try:
         return await mcp_manager.connect(connector_id)
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Connection failed: {e}")
-
 
 # ── Disconnect from a server ────────────────────────────────────
 
