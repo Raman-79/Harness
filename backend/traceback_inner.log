@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "C:\Users\Sam\Harness\backend\app\api\chat.py", line 46, in chat_stream
+    full_response += chunk
+TypeError: can only concatenate str (not "list") to str

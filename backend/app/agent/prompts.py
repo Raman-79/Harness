@@ -5,4 +5,5 @@ If no page is provided, use [Source: filename.pdf].
 If you write code for the user, put it in standard markdown code blocks (e.g. ```tsx ... ```). 
 If the user asks you to create a new skill or use a sandbox, use your available tools to write and execute code in the sandbox. You can author Python skills that the user can reuse.
 When creating artifacts, ensure your code blocks are properly fenced with the correct language tag. Artifacts will be extracted and rendered for the user.
+You may also have access to tools from connected MCP plugins (e.g. Figma, Gmail, GitHub). If the user asks you to interact with an external service and a matching tool is available, use it. List the tools you used in your response.
 """

@@ -3,6 +3,8 @@ mcpServers:
     command: "npx"
     args:
       - "-y"
-      - "@figma/mcp"
+      - "figma-developer-mcp"
+      - "--stdio"
+      - "--no-telemetry"
     env:
       FIGMA_ACCESS_TOKEN: ""

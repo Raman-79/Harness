@@ -54,12 +54,16 @@ async def chat_stream(websocket: WebSocket):
                 await websocket.send_json({"type": "done", "conversation_id": conversation_id})
                 
             except Exception as e:
+                with open("traceback_inner.log", "w") as f:
+                    traceback.print_exc(file=f)
                 traceback.print_exc()
                 await websocket.send_json({"type": "error", "data": str(e)})
             
     except WebSocketDisconnect:
         pass
     except Exception as e:
+        with open("traceback.log", "w") as f:
+            traceback.print_exc(file=f)
         traceback.print_exc()
         try:
             await websocket.send_json({"type": "error", "data": str(e)})
