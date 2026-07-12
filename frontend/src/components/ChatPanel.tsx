@@ -56,7 +56,7 @@ export function ChatPanel() {
             disabled={isStreaming}
             suppressHydrationWarning
           />
-          <button 
+          <button
             onClick={handleSend}
             disabled={isStreaming || !input.trim()}
             className="rounded-full bg-blue-600 p-3 text-white hover:bg-blue-700 disabled:opacity-50"
