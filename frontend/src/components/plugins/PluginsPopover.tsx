@@ -75,8 +75,16 @@ export function PluginsPopover({ onClose }: PluginsPopoverProps) {
   const liveById = new Map((items ?? []).map((c) => [c.id, c]));
   const merged: Connector[] = PREDEFINED_CONNECTORS.map((p) => {
     const live = liveById.get(p.id);
+    if (live) liveById.delete(p.id);
     return live ? { ...p, status: live.status, isCustom: p.isCustom } : p;
   });
+
+  const customConnectors = Array.from(liveById.values()).map(c => ({
+    ...c,
+    isCustom: true
+  }));
+
+  const allConnectors = [...merged, ...customConnectors];
 
   return (
     <div
@@ -124,7 +132,7 @@ export function PluginsPopover({ onClose }: PluginsPopoverProps) {
           </>
         )}
 
-        {!error && items !== null && merged.length === 0 && (
+        {!error && items !== null && allConnectors.length === 0 && (
           <div className="px-3 py-4 text-xs text-muted">
             No plugins available yet.
           </div>
@@ -132,7 +140,7 @@ export function PluginsPopover({ onClose }: PluginsPopoverProps) {
 
         {!error &&
           items !== null &&
-          merged.map((c) => (
+          allConnectors.map((c) => (
             <ConnectorRow
               key={c.id}
               connector={c}

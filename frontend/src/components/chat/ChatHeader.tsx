@@ -1,7 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, PanelLeft } from 'lucide-react';
 import { getModels, type ModelInfo } from '@/lib/api';
+import { useUIStore } from '@/store/chatStore';
+import { PluginsButton } from '@/components/plugins/PluginsButton';
 import { cn } from '@/lib/cn';
 
 const FALLBACK: ModelInfo[] = [
@@ -25,6 +27,9 @@ export function ChatHeader({
   const [models, setModels] = useState<ModelInfo[]>(FALLBACK);
   const [active, setActive] = useState<ModelInfo>(FALLBACK[0]);
 
+  const sidebarOpen = useUIStore((s) => s.sidebarOpen);
+  const setSidebarOpen = useUIStore((s) => s.setSidebarOpen);
+
   useEffect(() => {
     getModels()
       .then((list) => {
@@ -42,11 +47,24 @@ export function ChatHeader({
 
   return (
     <header className="h-12 flex items-center justify-between px-4 border-b border-border/60 bg-background">
-      <div className="text-sm font-medium text-foreground/80 truncate">
-        {title || 'New chat'}
+      <div className="flex items-center overflow-hidden">
+        {!sidebarOpen && (
+          <button
+            onClick={() => setSidebarOpen(true)}
+            className="p-1 mr-2 rounded-md text-muted hover:text-foreground hover:bg-foreground/5 transition-colors claude-focus-ring"
+            aria-label="Open sidebar"
+          >
+            <PanelLeft className="w-4 h-4" />
+          </button>
+        )}
+        <div className="text-sm font-medium text-foreground/80 truncate">
+          {title || 'New chat'}
+        </div>
       </div>
-      <div className="relative">
-        <button
+      <div className="flex items-center gap-2">
+        <PluginsButton />
+        <div className="relative">
+          <button
           onClick={() => setOpen((o) => !o)}
           className={cn(
             'flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-sm',
@@ -87,6 +105,7 @@ export function ChatHeader({
             ))}
           </ul>
         )}
+        </div>
       </div>
     </header>
   );

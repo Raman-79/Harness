@@ -11,10 +11,10 @@ Base: `f68ca95` (the plan commit)
 - [-] Task 3: Types & API client
 - [-] Task 4: Predefined connector constants
 - [-] Task 5: ConnectorRow
-- [ ] Task 6: PluginsPopover
-- [ ] Task 7: AddCustomServerModal
-- [ ] Task 8: PluginsButton
-- [ ] Task 9: Mount the button in ChatHeader
+- [-] Task 6: PluginsPopover
+- [-] Task 7: AddCustomServerModal
+- [-] Task 8: PluginsButton
+- [-] Task 9: Mount the button in ChatHeader
 - [ ] Task 10: Manual smoke verification
 
 ## Ledger

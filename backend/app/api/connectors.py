@@ -45,7 +45,7 @@ async def add_custom_server(payload: CustomServerIn):
     # Convert transport streamable_http to sse if needed, or just pass it
     mcp_manager.add_server(payload.name, config)
     return {
-        "id": f"custom-{uuid.uuid4()}",
+        "id": payload.name,
         "name": payload.name,
         "status": "disconnected",
         "transport": payload.transport,
