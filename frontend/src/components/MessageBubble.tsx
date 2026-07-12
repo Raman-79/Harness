@@ -6,12 +6,13 @@ import clsx from 'clsx';
 
 export function MessageBubble({ message }: { message: Message }) {
   const isUser = message.role === 'user';
-  
+
   return (
     <div className={clsx("flex w-full mb-4", isUser ? "justify-end" : "justify-start")}>
       <div className={clsx(
-        "max-w-[80%] rounded-2xl px-4 py-3 shadow-sm",
-        isUser ? "bg-blue-600 text-white" : "bg-gray-100 text-gray-900"
+        "max-w-[80%] rounded-xl px-4 py-3",
+        isUser ? "claude-message-user" :
+        "claude-message-assistant"
       )}>
         <div className="prose prose-sm max-w-none">
           <ReactMarkdown rehypePlugins={[rehypeHighlight]}>
