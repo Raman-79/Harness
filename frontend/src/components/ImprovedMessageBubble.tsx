@@ -65,8 +65,16 @@ export function ImprovedMessageBubble({
           <ReactMarkdown
             rehypePlugins={[rehypeHighlight]}
             components={{
-              code({ inline, className, children, ...props }: any) {
-                if (inline) {
+              pre({ children, className, ...props }: any) {
+                return (
+                  <pre className={cn("rounded-lg overflow-x-auto text-sm p-4 my-3 bg-background-muted border border-border", className)} {...props}>
+                    {children}
+                  </pre>
+                );
+              },
+              code({ className, children, ...props }: any) {
+                const isBlock = /language-(\w+)/.exec(className || '');
+                if (isBlock) {
                   return (
                     <code className={className} {...props}>
                       {children}
@@ -74,11 +82,9 @@ export function ImprovedMessageBubble({
                   );
                 }
                 return (
-                  <pre className="rounded-lg overflow-x-auto text-sm p-4">
-                    <code className={className} {...props}>
-                      {children}
-                    </code>
-                  </pre>
+                  <code className={cn(className, "bg-foreground/8 px-1 py-0.5 rounded")} {...props}>
+                    {children}
+                  </code>
                 );
               },
               blockquote({ children, ...props }: any) {

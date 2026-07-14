@@ -1,0 +1,1 @@
+Hello! This is a dummy file to prove the Filesystem MCP is working correctly. If you can read this, the integration is a success!

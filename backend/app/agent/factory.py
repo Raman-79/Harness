@@ -59,7 +59,7 @@ def build_agent(
             timeout=settings.SANDBOX_EXECUTION_TIMEOUT,
         )
     else:
-        backend = FilesystemBackend(root_dir=settings.AGENT_FS_ROOT)
+        backend = FilesystemBackend(root_dir=settings.AGENT_FS_ROOT, virtual_mode=True)
 
     model = _resolve_model(settings, model_id)
 
@@ -124,5 +124,9 @@ async def stream_agent(
     ):
         if event["event"] == "on_chat_model_stream":
             chunk = event["data"]["chunk"]
-            if chunk.content:
+            if isinstance(chunk.content, str) and chunk.content:
                 yield chunk.content
+            elif isinstance(chunk.content, list):
+                for block in chunk.content:
+                    if isinstance(block, dict) and block.get("type") == "text" and block.get("text"):
+                        yield block["text"]

@@ -1,10 +1,8 @@
 mcpServers:
-  figma:
+  filesystem:
     command: "npx"
     args:
       - "-y"
-      - "figma-developer-mcp"
-      - "--stdio"
-      - "--no-telemetry"
-    env:
-      FIGMA_ACCESS_TOKEN: ""
+      - "@modelcontextprotocol/server-filesystem"
+      - "C:/Users/Sam/Harness"
+    env: {}

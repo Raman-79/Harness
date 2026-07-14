@@ -11,7 +11,7 @@ class Settings(BaseSettings):
     CHUNK_SIZE: int = 800
     CHUNK_OVERLAP: int = 100
     AGENT_FS_ROOT: str = "./data/agent-fs"
-    SKILLS_DIRS: list[str] = ["./skills/"]
+    SKILLS_DIRS: list[str] = []
     E2B_API_KEY: str = ""
     FORGE_ENCRYPTION_KEY: str = ""
     SANDBOX_EXECUTION_TIMEOUT: int = 300

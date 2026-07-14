@@ -200,8 +200,8 @@ class MCPManager:
         """Return tool names for a specific server."""
         if not self._connected.get(name):
             return []
-        # Filter tools by server name prefix
-        return [t.name for t in self._tools if t.name.startswith(name)]
+        # Return all tools for debugging
+        return [t.name for t in self._tools]
 
 
 # Module-level singleton
