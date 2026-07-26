@@ -1,9 +1,9 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { X, Code2, Eye } from 'lucide-react';
+import { X, Code2, Eye, Copy, Download, History, Check } from 'lucide-react';
 import { useUIStore, useChatStore } from '@/store/chatStore';
-import { listArtifactsForConversation, getArtifact } from '@/lib/api';
-import type { Artifact } from '@/lib/types';
+import { listArtifactsForConversation, getArtifact, getArtifactVersion } from '@/lib/api';
+import type { Artifact, ArtifactVersion } from '@/lib/types';
 import { cn } from '@/lib/cn';
 
 export function ArtifactPanel() {
@@ -16,45 +16,47 @@ export function ArtifactPanel() {
   const [mode, setMode] = useState<'preview' | 'code'>('preview');
   const [content, setContent] = useState<string>('');
   const [loading, setLoading] = useState(false);
+  const [copied, setCopied] = useState(false);
 
-  // Use store artifacts if we have any (sent in real-time via WS), otherwise
-  // fall back to a REST fetch.
-  const artifacts: Artifact[] = storeArtifacts.length
-    ? storeArtifacts
-    : [];
+  // Version history state
+  const [versions, setVersions] = useState<ArtifactVersion[]>([]);
+  const [selectedVersionNum, setSelectedVersionNum] = useState<number | null>(null);
+
+  const artifacts: Artifact[] = storeArtifacts.length ? storeArtifacts : [];
 
   useEffect(() => {
     if (!conversationId) return;
     if (artifacts.length > 0) return;
     listArtifactsForConversation(conversationId)
-      .then((list) => {
-        // We don't have a setter for the store in the slice that maps the
-        // server shape; the useChat hook already populates the store on the
-        // `artifact` WS event, so this fetch is just a recovery path.
-      })
       .catch(() => undefined);
   }, [conversationId, artifacts.length]);
 
-  // Auto-select the first artifact if none active.
   useEffect(() => {
     if (!activeId && artifacts.length > 0) {
       setActiveId(artifacts[0].id);
     }
   }, [activeId, artifacts, setActiveId]);
 
-  // Fetch the artifact content (which lives in the latest version).
+  // Fetch artifact & versions
   useEffect(() => {
     if (!activeId) {
       setContent('');
+      setVersions([]);
+      setSelectedVersionNum(null);
       return;
     }
     let cancelled = false;
     setLoading(true);
+
     getArtifact(activeId)
       .then((data: any) => {
         if (cancelled) return;
-        if (data?.latest_version?.content) {
-          setContent(data.latest_version.content);
+        if (data?.history && Array.isArray(data.history)) {
+          setVersions(data.history);
+        }
+        if (data?.latest_version) {
+          setContent(data.latest_version.content || '');
+          setSelectedVersionNum(data.latest_version.version_number);
         } else if (data?.artifact?.content) {
           setContent(data.artifact.content);
         } else {
@@ -67,73 +69,118 @@ export function ArtifactPanel() {
       .finally(() => {
         if (!cancelled) setLoading(false);
       });
+
     return () => {
       cancelled = true;
     };
   }, [activeId]);
 
+  async function handleVersionSelect(verNum: number) {
+    if (!activeId) return;
+    setSelectedVersionNum(verNum);
+    setLoading(true);
+    try {
+      const verData = await getArtifactVersion(activeId, verNum);
+      if (verData?.content) {
+        setContent(verData.content);
+      }
+    } catch (err) {
+      console.error('Failed to load version', err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  function handleCopy() {
+    if (!content) return;
+    navigator.clipboard.writeText(content);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
+  function handleDownload() {
+    if (!content) return;
+    const activeArtifact = artifacts.find((a) => a.id === activeId);
+    const filename = `${activeArtifact?.title || 'artifact'}.${activeArtifact?.language || 'txt'}`;
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = filename;
+    link.click();
+    URL.revokeObjectURL(url);
+  }
+
+  const currentArtifact = artifacts.find((a) => a.id === activeId);
+
   return (
     <aside
-      className="w-[420px] shrink-0 h-full flex flex-col border-l border-border bg-background"
+      className="w-[440px] shrink-0 h-full flex flex-col border-l border-border bg-background shadow-2xl z-10"
       aria-label="Artifacts"
     >
-      <div className="h-12 flex items-center justify-between px-3 border-b border-border/60">
-        <div className="flex items-center gap-2 text-sm font-medium">
-          <Code2 className="w-4 h-4" />
-          <span>Artifacts</span>
+      {/* Header Bar */}
+      <div className="h-13 flex items-center justify-between px-3 border-b border-border/80 bg-background-muted/70">
+        <div className="flex items-center gap-2 text-xs font-semibold text-foreground">
+          <Code2 className="w-4 h-4 text-primary" />
+          <span className="font-heading text-sm">Artifact Workbench</span>
           {artifacts.length > 0 && (
-            <span className="text-muted">({artifacts.length})</span>
+            <span className="text-[10px] px-1.5 py-0.5 rounded-full bg-primary/20 text-primary font-mono font-medium">
+              {artifacts.length}
+            </span>
           )}
         </div>
+
         <div className="flex items-center gap-1">
           <button
             onClick={() => setMode('preview')}
             className={cn(
-              'p-1.5 rounded-md claude-focus-ring',
+              'p-1.5 rounded-lg text-xs flex items-center gap-1 font-medium transition-all',
               mode === 'preview'
-                ? 'bg-foreground/10 text-foreground'
+                ? 'bg-primary/20 text-primary border border-primary/30'
                 : 'text-muted hover:text-foreground hover:bg-foreground/5'
             )}
-            aria-label="Preview"
             title="Preview"
           >
             <Eye className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Preview</span>
           </button>
+
           <button
             onClick={() => setMode('code')}
             className={cn(
-              'p-1.5 rounded-md claude-focus-ring',
+              'p-1.5 rounded-lg text-xs flex items-center gap-1 font-medium transition-all',
               mode === 'code'
-                ? 'bg-foreground/10 text-foreground'
+                ? 'bg-primary/20 text-primary border border-primary/30'
                 : 'text-muted hover:text-foreground hover:bg-foreground/5'
             )}
-            aria-label="View code"
-            title="View code"
+            title="View Source Code"
           >
             <Code2 className="w-3.5 h-3.5" />
+            <span className="hidden sm:inline">Code</span>
           </button>
+
           <button
             onClick={() => setOpen(false)}
-            className="p-1.5 rounded-md text-muted hover:text-foreground hover:bg-foreground/5 claude-focus-ring"
-            aria-label="Close artifact panel"
-            title="Close"
+            className="p-1.5 rounded-lg text-muted hover:text-foreground hover:bg-foreground/5 transition-colors"
+            title="Close Panel"
           >
-            <X className="w-3.5 h-3.5" />
+            <X className="w-4 h-4" />
           </button>
         </div>
       </div>
 
+      {/* Artifact Selector Rail */}
       {artifacts.length > 1 && (
-        <div className="flex gap-1 px-3 py-2 border-b border-border/60 overflow-x-auto">
+        <div className="flex gap-1 px-3 py-2 border-b border-border/60 overflow-x-auto bg-background-muted/30">
           {artifacts.map((a) => (
             <button
               key={a.id}
               onClick={() => setActiveId(a.id)}
               className={cn(
-                'px-2.5 py-1 rounded-md text-xs whitespace-nowrap claude-focus-ring',
+                'px-2.5 py-1 rounded-md text-xs font-mono whitespace-nowrap transition-all',
                 a.id === activeId
-                  ? 'bg-foreground/10 text-foreground'
-                  : 'text-muted hover:text-foreground hover:bg-foreground/5'
+                  ? 'bg-primary text-white font-medium shadow-xs'
+                  : 'text-muted hover:text-foreground hover:bg-foreground/5 border border-border/50'
               )}
             >
               {a.title || a.language}
@@ -142,34 +189,89 @@ export function ArtifactPanel() {
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-auto">
+      {/* Version Switcher Bar */}
+      {versions.length > 0 && (
+        <div className="px-3 py-1.5 border-b border-border/40 bg-background/50 flex items-center justify-between text-xs">
+          <div className="flex items-center gap-1.5 text-muted font-mono text-[11px]">
+            <History className="w-3 h-3 text-accent" />
+            <span>Version History:</span>
+          </div>
+
+          <div className="flex items-center gap-1 overflow-x-auto">
+            {versions.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => handleVersionSelect(v.version_number)}
+                className={cn(
+                  'px-2 py-0.5 rounded text-[11px] font-mono transition-all',
+                  v.version_number === selectedVersionNum
+                    ? 'bg-accent/20 text-accent border border-accent/40 font-bold'
+                    : 'text-muted hover:text-foreground hover:bg-foreground/5'
+                )}
+              >
+                v{v.version_number}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Main Content Area */}
+      <div className="flex-1 min-h-0 relative overflow-hidden bg-background">
         {artifacts.length === 0 ? (
-          <div className="h-full flex items-center justify-center text-sm text-muted px-6 text-center">
-            When the assistant generates code, it will appear here with a live preview.
+          <div className="h-full flex flex-col items-center justify-center p-6 text-center text-muted space-y-3">
+            <div className="p-3 rounded-2xl bg-primary/10 text-primary">
+              <Code2 className="w-8 h-8" />
+            </div>
+            <p className="text-xs max-w-xs leading-relaxed">
+              Code artifacts generated by the agent will automatically stream into this panel with live execution.
+            </p>
           </div>
         ) : loading ? (
-          <div className="h-full flex items-center justify-center text-sm text-muted">
-            Loading…
+          <div className="h-full flex items-center justify-center text-xs text-muted font-mono animate-pulse">
+            Loading artifact content…
           </div>
         ) : mode === 'preview' ? (
-          <ArtifactPreview content={content} language={artifacts.find((a) => a.id === activeId)?.language || 'react'} />
+          <ArtifactPreview content={content} language={currentArtifact?.language || 'react'} />
         ) : (
-          <pre className="text-xs p-4 overflow-auto h-full">
-            <code>{content}</code>
-          </pre>
+          <div className="h-full flex flex-col">
+            <pre className="text-xs p-4 overflow-auto flex-1 font-mono text-foreground/90 leading-relaxed">
+              <code>{content}</code>
+            </pre>
+          </div>
         )}
       </div>
+
+      {/* Action Footer Bar */}
+      {artifacts.length > 0 && content && (
+        <div className="p-2.5 border-t border-border/80 bg-background-muted/50 flex items-center justify-between">
+          <div className="text-[11px] font-mono text-muted truncate max-w-[200px]">
+            {currentArtifact?.title || 'artifact'} ({currentArtifact?.language})
+          </div>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleCopy}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-border/80 text-xs font-medium text-foreground hover:bg-foreground/5 transition-all"
+              title="Copy source code"
+            >
+              {copied ? <Check className="w-3 h-3 text-emerald-400" /> : <Copy className="w-3 h-3 text-muted" />}
+              <span>{copied ? 'Copied' : 'Copy'}</span>
+            </button>
+            <button
+              onClick={handleDownload}
+              className="flex items-center gap-1 px-2.5 py-1 rounded-md border border-border/80 text-xs font-medium text-foreground hover:bg-foreground/5 transition-all"
+              title="Download file"
+            >
+              <Download className="w-3 h-3 text-muted" />
+              <span>Download</span>
+            </button>
+          </div>
+        </div>
+      )}
     </aside>
   );
 }
 
-/**
- * Sandpack is intentionally NOT in our bundle (the plan calls it out as
- * optional and it pulls a huge JS payload). For non-React languages we
- * fall back to highlighted code; for HTML/SVG we render in an iframe
- * via `srcDoc`. For React we render the code and label it as "Code
- * preview" — the user can copy it out.
- */
 function ArtifactPreview({ content, language }: { content: string; language: string }) {
   const lang = language.toLowerCase();
 
@@ -178,21 +280,17 @@ function ArtifactPreview({ content, language }: { content: string; language: str
       <iframe
         title="Artifact preview"
         srcDoc={content}
-        className="w-full h-full bg-white"
+        className="w-full h-full bg-white border-0"
         sandbox="allow-scripts"
       />
     );
   }
 
   return (
-    <div className="p-4 h-full">
-      <pre className="hljs text-xs whitespace-pre-wrap break-words">
+    <div className="p-4 h-full overflow-auto font-mono">
+      <pre className="text-xs whitespace-pre-wrap break-words text-foreground/90 leading-relaxed">
         <code>{content}</code>
       </pre>
-      <p className="mt-3 text-xs text-muted">
-        React/JSX artifacts render in the code view. Inline preview is
-        available for HTML and SVG.
-      </p>
     </div>
   );
 }

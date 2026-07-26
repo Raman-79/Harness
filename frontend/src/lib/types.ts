@@ -47,6 +47,15 @@ export interface Artifact {
   updated_at?: string;
 }
 
+export interface ArtifactVersion {
+  id: string;
+  artifact_id: string;
+  content: string;
+  language: string;
+  version_number: number;
+  created_at: string;
+}
+
 export interface Project {
   id: string;
   name: string;

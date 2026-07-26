@@ -1,7 +1,8 @@
 import { create } from 'zustand';
-import { Conversation, Message, File as AppFile, Artifact } from '@/lib/types';
+import { Conversation, Message, File as AppFile, Artifact, Project } from '@/lib/types';
 
 export type Theme = 'system' | 'light' | 'dark';
+export type WorkspaceMode = 'chat' | 'split' | 'artifact';
 
 interface ChatState {
   activeConversationId: string | null;
@@ -9,12 +10,20 @@ interface ChatState {
   messages: Message[];
   uploadedFiles: AppFile[];
   artifacts: Artifact[];
+  projects: Project[];
+  activeProjectId: string | null;
+
+  // Projects
+  setProjects: (projects: Project[]) => void;
+  setActiveProjectId: (id: string | null) => void;
+  addProject: (project: Project) => void;
 
   // Conversation lifecycle
   setActiveConversationId: (id: string | null) => void;
   setConversations: (conversations: Conversation[]) => void;
   upsertConversation: (conversation: Conversation) => void;
   removeConversation: (id: string) => void;
+  toggleStarConversation: (id: string, starred: boolean) => void;
 
   // Messages
   setMessages: (messages: Message[]) => void;
@@ -44,6 +53,12 @@ export const useChatStore = create<ChatState>((set) => ({
   messages: [],
   uploadedFiles: [],
   artifacts: [],
+  projects: [],
+  activeProjectId: null,
+
+  setProjects: (projects) => set({ projects }),
+  setActiveProjectId: (id) => set({ activeProjectId: id }),
+  addProject: (project) => set((state) => ({ projects: [project, ...state.projects] })),
 
   setActiveConversationId: (id) => set({ activeConversationId: id }),
 
@@ -64,6 +79,13 @@ export const useChatStore = create<ChatState>((set) => ({
       ...(state.activeConversationId === id
         ? { activeConversationId: null, messages: [] }
         : {}),
+    })),
+
+  toggleStarConversation: (id, starred) =>
+    set((state) => ({
+      conversations: state.conversations.map((c) =>
+        c.id === id ? { ...c, starred } : c
+      ),
     })),
 
   setMessages: (messages) => set({ messages }),
@@ -121,9 +143,7 @@ export const useChatStore = create<ChatState>((set) => ({
 }));
 
 // ----------------------------------------------------------------------------
-// UI store — sidebar/panel/search/artifact panel state. Kept separate from the
-// chat content store so opening/closing the sidebar doesn't re-render the
-// message list.
+// UI store — sidebar/panel/search/artifact panel state.
 // ----------------------------------------------------------------------------
 
 interface UIState {
@@ -132,12 +152,17 @@ interface UIState {
   searchOpen: boolean;
   artifactPanelOpen: boolean;
   activeArtifactId: string | null;
+  projectModalOpen: boolean;
+  workspaceMode: WorkspaceMode;
+
   setTheme: (theme: Theme) => void;
   setSidebarOpen: (open: boolean) => void;
   toggleSidebar: () => void;
   setSearchOpen: (open: boolean) => void;
   setArtifactPanelOpen: (open: boolean) => void;
   setActiveArtifactId: (id: string | null) => void;
+  setProjectModalOpen: (open: boolean) => void;
+  setWorkspaceMode: (mode: WorkspaceMode) => void;
 }
 
 const THEME_KEY = 'forge-theme';
@@ -164,6 +189,8 @@ export const useUIStore = create<UIState>((set, get) => ({
   searchOpen: false,
   artifactPanelOpen: false,
   activeArtifactId: null,
+  projectModalOpen: false,
+  workspaceMode: 'split',
 
   setTheme: (theme) => {
     applyTheme(theme);
@@ -179,10 +206,10 @@ export const useUIStore = create<UIState>((set, get) => ({
   setSearchOpen: (open) => set({ searchOpen: open }),
   setArtifactPanelOpen: (open) => set({ artifactPanelOpen: open }),
   setActiveArtifactId: (id) => set({ activeArtifactId: id }),
+  setProjectModalOpen: (open) => set({ projectModalOpen: open }),
+  setWorkspaceMode: (workspaceMode) => set({ workspaceMode }),
 }));
 
-// Initialize the theme store from localStorage. The actual <html data-theme>
-// attribute is already set by the inline bootstrap script in layout.tsx.
 if (typeof window !== 'undefined') {
   useUIStore.setState({ theme: readInitialTheme() });
 }

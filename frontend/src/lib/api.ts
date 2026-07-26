@@ -133,6 +133,21 @@ export async function getArtifact(artifactId: string): Promise<ArtifactWithVersi
   return jsonOrThrow(response);
 }
 
+export async function getArtifactVersion(
+  artifactId: string,
+  versionNumber: number
+): Promise<{
+  id: string;
+  artifact_id: string;
+  content: string;
+  language: string;
+  version_number: number;
+  created_at: string;
+}> {
+  const response = await fetch(`${API_URL}/artifacts/${artifactId}/versions/${versionNumber}`);
+  return jsonOrThrow(response);
+}
+
 // ----------------------------------------------------------------------------
 // Projects
 // ----------------------------------------------------------------------------

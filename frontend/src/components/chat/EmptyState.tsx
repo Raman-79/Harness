@@ -1,47 +1,99 @@
 'use client';
-import { Sparkles } from 'lucide-react';
+import { Cpu, Terminal, Code, Sparkles, Zap, FileCode2 } from 'lucide-react';
+import { useChatStore } from '@/store/chatStore';
 
-const SUGGESTIONS = [
-  'Explain quantum computing in simple terms',
-  'How do I make an HTTP request in JavaScript?',
-  'Write a Python function to calculate factorial',
-  'Summarize the latest research on fusion energy',
+const ACTION_STARTERS = [
+  {
+    icon: Code,
+    title: 'Build React Sandpack Artifact',
+    prompt: 'Create a responsive React dashboard component with live interactive charts and Tailwind styling.',
+  },
+  {
+    icon: Terminal,
+    title: 'MCP Connector Integration',
+    prompt: 'List available MCP tools and demonstrate how to query external APIs or design files.',
+  },
+  {
+    icon: FileCode2,
+    title: 'File RAG Synthesis',
+    prompt: 'Upload project documentation or code files to analyze architecture and dependencies.',
+  },
+  {
+    icon: Zap,
+    title: 'Algorithm & Code Refactor',
+    prompt: 'Write a high-performance Python async worker pool with retry logic and error telemetry.',
+  },
 ];
 
-/**
- * Centered empty state shown when the active conversation has no
- * messages yet. Includes a few starter prompts the user can click to
- * populate the composer.
- */
 export function EmptyState({
   onPick,
 }: {
   onPick: (prompt: string) => void;
 }) {
-  return (
-    <div className="flex h-full items-center justify-center px-4">
-      <div className="text-center max-w-xl">
-        <div className="mx-auto mb-6 w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center">
-          <Sparkles className="w-7 h-7 text-primary" />
-        </div>
-        <h2 className="text-2xl font-semibold tracking-tight text-foreground">
-          How can I help you today?
-        </h2>
-        <p className="mt-2 text-muted text-sm">
-          Ask anything or attach a file. Forge streams answers live and can
-          generate code artifacts in the right panel.
-        </p>
+  const projects = useChatStore((s) => s.projects);
+  const activeProjectId = useChatStore((s) => s.activeProjectId);
+  const activeProject = projects.find((p) => p.id === activeProjectId);
 
-        <div className="mt-8 grid grid-cols-1 sm:grid-cols-2 gap-2">
-          {SUGGESTIONS.map((s) => (
-            <button
-              key={s}
-              onClick={() => onPick(s)}
-              className="text-left p-3 rounded-xl bg-background-muted border border-border/50 hover:bg-foreground/5 transition-colors text-sm"
-            >
-              {s}
-            </button>
-          ))}
+  return (
+    <div className="flex h-full items-center justify-center p-6 bg-gradient-to-b from-background to-background-muted/40 overflow-y-auto">
+      <div className="text-center max-w-2xl space-y-8 animate-in fade-in zoom-in-95 duration-200">
+        
+        {/* Cyber Hero Badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full border border-primary/30 bg-primary/10 text-primary text-xs font-mono font-medium shadow-xs">
+          <Cpu className="w-3.5 h-3.5 animate-pulse" />
+          <span>FORGE AGENTIC HARNESS v0.6</span>
+          {activeProject && (
+            <span className="border-l border-primary/30 pl-2 text-foreground/80 font-sans">
+              Project: {activeProject.name}
+            </span>
+          )}
+        </div>
+
+        {/* Hero Thesis */}
+        <div className="space-y-3">
+          <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground font-heading">
+            Pair program with autonomous AI intelligence.
+          </h1>
+          <p className="text-muted text-sm sm:text-base max-w-xl mx-auto leading-relaxed">
+            Forge streams reasoning live, executes code in Sandpack artifacts, inspects MCP tools, and grounds context in your uploaded project files.
+          </p>
+        </div>
+
+        {/* Quick Action Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+          {ACTION_STARTERS.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button
+                key={item.title}
+                onClick={() => onPick(item.prompt)}
+                className="group p-4 rounded-xl border border-border/80 bg-background/90 hover:bg-foreground/5 hover:border-primary/50 transition-all duration-150 shadow-xs flex flex-col justify-between space-y-2"
+              >
+                <div className="flex items-center justify-between w-full">
+                  <div className="flex items-center gap-2">
+                    <div className="p-1.5 rounded-lg bg-primary/10 text-primary group-hover:bg-primary group-hover:text-white transition-colors">
+                      <Icon className="w-4 h-4" />
+                    </div>
+                    <span className="font-semibold text-xs text-foreground group-hover:text-primary transition-colors font-heading">
+                      {item.title}
+                    </span>
+                  </div>
+                  <Sparkles className="w-3.5 h-3.5 text-muted opacity-0 group-hover:opacity-100 transition-opacity" />
+                </div>
+                <p className="text-xs text-muted line-clamp-2 leading-relaxed">
+                  {item.prompt}
+                </p>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* System Capabilities Footer */}
+        <div className="pt-4 border-t border-border/40 flex items-center justify-center gap-6 text-[11px] font-mono text-muted/70">
+          <span>• DeepAgents Engine</span>
+          <span>• MCP Protocol</span>
+          <span>• Sandpack Sandbox</span>
+          <span>• Vector RAG</span>
         </div>
       </div>
     </div>
